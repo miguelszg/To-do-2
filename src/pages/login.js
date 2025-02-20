@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './login.css';
 
@@ -27,7 +27,7 @@ const Login = () => {
 
   const handleLogin = async () => {
     setMensajeServidor('');
-
+  
     if (!validateEmail(formData.email)) {
       setErrors({ ...errors, email: 'Correo inválido' });
       return;
@@ -36,26 +36,39 @@ const Login = () => {
       setErrors({ ...errors, password: 'La contraseña no puede estar vacía' });
       return;
     }
-
+  
     try {
       const response = await fetch('http://localhost:5000/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
+  
       const data = await response.json();
-
+  
       if (!data.success) {
         setMensajeServidor(data.message);
         return;
       }
 
+      if (data.userId) {
+        localStorage.setItem('userId', data.userId);
+      } else {
+        console.error('No se recibió userId del backend:', data);
+      }
+      console.log('Inicio de sesión exitoso', data.userId);
+      
+  
+      
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userId', data.userId); 
+  
       navigate('/main');
     } catch (error) {
       setMensajeServidor('Error de conexión con el servidor');
     }
   };
+  
 
   const handleBack = () => {
     navigate('/');
@@ -111,4 +124,83 @@ const Login = () => {
   );
 };
 
-export default Login;
+const Main = () => {
+  const navigate = useNavigate();
+
+  // Función para verificar si el token ha expirado
+  const checkTokenExpiration = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decodificar el token
+      const currentTime = Date.now() / 1000; // Obtener el tiempo actual en segundos
+
+      if (decodedToken.exp < currentTime) {
+        // Si el token ha expirado, elimínalo y redirige al login
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error al verificar el token:', error);
+      localStorage.removeItem('token');
+      navigate('/login');
+    }
+  };
+
+  // Verificar el token cada vez que se carga el componente
+  useEffect(() => {
+    checkTokenExpiration();
+  }, []);
+
+  const handleAddTask = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:5000/add-task', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: 'Task 1', description: 'Description', time: '2023-10-01', status: 'In Progress', category: 'Work' }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        if (data.message === 'Token expirado o inválido') {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
+        return;
+      }
+
+      console.log('Tarea añadida:', data);
+    } catch (error) {
+      console.error('Error al añadir tarea:', error);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  return (
+    <div>
+      <h1>Main Page</h1>
+      <button onClick={handleAddTask}>Añadir Tarea</button>
+      <button onClick={handleLogout}>Cerrar Sesión</button>
+    </div>
+  );
+};
+
+export default Login ;
