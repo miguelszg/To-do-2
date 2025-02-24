@@ -26,14 +26,14 @@ app.post('/register', async (req, res) => {
   const { username,email, password , role} = req.body;
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10); // Hashea la contraseña
+    const hashedPassword = await bcrypt.hash(password, 10); 
     const newUser = new User({ 
       username,
       email, 
       password: hashedPassword,
       role,
     });
-    await newUser.save(); // Guarda el usuario en la base de datos
+    await newUser.save(); 
     res.json({ success: true, message: 'Usuario registrado exitosamente' });
   } catch (error) {
     console.error('Error al registrar usuario:', error);
@@ -60,8 +60,6 @@ const authenticateToken = (req, res, next) => {
 
 
 
-app.use('/add-task', authenticateToken);
-
 
 //Login
 app.post('/login', async (req, res) => {
@@ -79,7 +77,7 @@ app.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role }, // Incluye el role en el token
+      { userId: user._id, email: user.email, role: user.role }, 
       'password1212',
       { expiresIn: '10m' }
     );
@@ -92,7 +90,7 @@ app.post('/login', async (req, res) => {
       token,
       username: user.username,
       userId: user._id ? user._id.toString() : null,
-      role: user.role, // Devuelve el role del usuario
+      role: user.role,
     });
   } catch (error) {
     console.error('Error en /login:', error);
@@ -127,7 +125,7 @@ app.post('/add-task', async (req, res) => {
   try {
     const taskCollection = mongoose.connection.collection('TASK');
 
-    // Obtener el username del creador de la tarea
+  
     const creator = await User.findOne({ _id: userId });
     if (!creator) {
       return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
@@ -140,14 +138,14 @@ app.post('/add-task', async (req, res) => {
       dead_line: time,
       status: status === 'In Progress' ? '1' : status === 'Done' ? '2' : status === 'Paused' ? '3' : '4',
       category,
-      groupId: groupId || null, // ID del grupo (opcional)
-      createdBy: creator.username, // Username del creador
-      assignedTo: assignedParticipants || [], // Usernames de los integrantes asignados
+      groupId: groupId || null, 
+      createdBy: creator.username, 
+      assignedTo: assignedParticipants || [], 
     };
 
     await taskCollection.insertOne(newTask);
 
-    // Obtener todas las tareas del usuario
+    
     const tasks = await taskCollection.find({ userId }).toArray();
 
     res.json({ success: true, message: 'Tarea añadida correctamente', tasks });
@@ -177,6 +175,20 @@ app.get('/groups-by-user/:username', async (req, res) => {
 
   try {
     const groupCollection = mongoose.connection.collection('GROUPS');
+
+    
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+
+    
+    if (user.role === '1') {
+      const groups = await groupCollection.find().toArray();
+      return res.json({ success: true, groups });
+    }
+
+    
     const groups = await groupCollection.find({ personas: username }).toArray();
     res.json({ success: true, groups });
   } catch (error) {
@@ -191,31 +203,42 @@ app.get('/tasks-by-group/:groupId/:username', async (req, res) => {
   try {
     const taskCollection = mongoose.connection.collection('TASK');
 
-    // Filtrar tareas por groupId y verificar si el usuario está asignado a la tarea
-    const tasks = await taskCollection.find({ 
-      groupId, 
-      assignedTo: username // Filtra solo las tareas asignadas a este usuario
-    }).toArray();
+    
+    const tasks = await taskCollection.find({ groupId }).toArray();
 
-    res.json({ success: true, tasks });
+    
+    const tasksWithAssignment = tasks.map(task => ({
+      ...task,
+      isAssigned: task.assignedTo.includes(username), 
+    }));
+
+    res.json({ success: true, tasks: tasksWithAssignment });
   } catch (error) {
-    console.error('Error al obtener tareas por grupo y usuario:', error);
+    console.error('Error al obtener tareas del grupo con asignación:', error);
     res.status(500).json({ success: false, message: 'Error al obtener tareas' });
   }
 });
 
 
 
-
 app.post('/update-task/:taskId/:status', async (req, res) => {
   const { taskId, status } = req.params;
+  const username = req.headers['username']; 
 
-  if (!taskId || !status) {
-    return res.status(400).json({ success: false, message: 'Falta el ID de la tarea o el nuevo estado' });
+  console.log("Username recibido en el backend:", username); 
+
+  if (!taskId || !status ) {
+    return res.status(400).json({ success: false, message: 'Falta el ID de la tarea, el nuevo estado o el username' });
   }
 
   try {
     const taskCollection = mongoose.connection.collection('TASK');
+    const task = await taskCollection.findOne({ _id: new mongoose.Types.ObjectId(taskId) });
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Tarea no encontrada' });
+    }
+
     const result = await taskCollection.updateOne(
       { _id: new mongoose.Types.ObjectId(taskId) },
       { $set: { status: status } }
@@ -225,7 +248,7 @@ app.post('/update-task/:taskId/:status', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Tarea no encontrada o no se realizó ningún cambio' });
     }
 
-    // Obtener la tarea actualizada
+    
     const updatedTask = await taskCollection.findOne({ _id: new mongoose.Types.ObjectId(taskId) });
 
     res.json({ success: true, message: 'Estado de tarea actualizado correctamente', task: updatedTask });
@@ -235,7 +258,7 @@ app.post('/update-task/:taskId/:status', async (req, res) => {
   }
 });
 
-app.delete('/delete-task/:taskId', async (req, res) => { // Elimina authenticateToken
+app.delete('/delete-task/:taskId', async (req, res) => { 
   const { taskId } = req.params;
 
   try {
@@ -281,8 +304,8 @@ app.get('/users', async (req, res) => {
   try {
     const userCollection = mongoose.connection.collection('USERS'); 
     const users = await userCollection.find(
-      { role: "2" }, // Filtro para usuarios con role 2
-      { projection: { username: 1, _id: 0 } } // Proyección: solo el campo username
+      { role: "2" },
+      { projection: { username: 1, _id: 0 } } 
     ).toArray(); 
 
     res.json({ success: true, users });
