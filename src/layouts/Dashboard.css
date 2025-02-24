@@ -42,6 +42,7 @@ h1 {
   justify-content: center;
   align-items: center;
   z-index: 9999;
+  overflow-y: auto;
 }
 
 .modal {
@@ -273,7 +274,7 @@ h1 {
   display: flex;
   gap: 20px;
   margin-top: 20px;
-  flex-wrap: wrap; /* Permite que las cards se ajusten en varias líneas si es necesario */
+  flex-wrap: wrap; 
 }
 
 .delete-button1 {
@@ -307,4 +308,141 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
+
+
+.add-group-btn {
+  display: flex;
+  align-items: left;
+  justify-content: flex-end;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 15px;
+  font-size: 0.875rem;
+}
+
+.user-list {
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;  /* Permite que los elementos se envuelvan en varias filas */
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.user-list > * {
+  flex: 1 1 calc(50% - 10px); /* Establece que cada item ocupe el 50% del ancho menos el espacio entre ellos */
+}
+
+
+.user-item {
+  padding: 10px;
+  margin: 5px 0;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.user-item.selected {
+  background-color: #2563eb;
+  color: white;
+}
+
+.selected-participants {
+  margin-top: 20px;
+}
+
+.selected-item {
+  display: inline-block;
+  padding: 10px;
+  margin: 5px;
+  background-color: #2563eb;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.selected-item:hover {
+  background-color: #1e40af;
+}
+
+.remove-icon {
+  margin-left: 10px;
+  font-weight: bold;
+}
+
+.save-group-btn {
+  margin-top: 20px;
+  padding: 10px 20px;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.save-group-btn:hover {
+  background-color: #15803d;
+}
+
+
+.group-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.group-button {
+  padding: 10px 20px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.group-button.active {
+  background-color: #1e40af;
+}
+
+.group-button:hover {
+  background-color: #1e40af;
+}
+
+.task-columns {
+  display: flex;
+  gap: 20px;
+}
+
+.task-column {
+  flex: 1;
+  background-color: #f0f0f0;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.task-card {
+  background-color: white;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.task-info {
+  margin-top: 10px;
+}
+
+.status {
+  margin-top: 10px;
+  font-weight: bold;
 }

@@ -50,18 +50,13 @@ const Login = () => {
         setMensajeServidor(data.message);
         return;
       }
-
-      if (data.userId) {
-        localStorage.setItem('userId', data.userId);
-      } else {
-        console.error('No se recibió userId del backend:', data);
-      }
-      console.log('Inicio de sesión exitoso', data.userId);
-      
   
       
       localStorage.setItem('token', data.token);
-      localStorage.setItem('userId', data.userId); 
+      localStorage.setItem('userId', data.userId);
+      localStorage.setItem('role', data.role); 
+      localStorage.setItem('username', data.username);
+      console.log("username: ", data.username);
   
       navigate('/main');
     } catch (error) {

@@ -5,6 +5,7 @@ import './register.css';
 const Registro = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -64,7 +65,7 @@ const Registro = () => {
       const response = await fetch('http://localhost:5000/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, password: formData.password })
+        body: JSON.stringify({ email: formData.email, password: formData.password, username: formData.username }),
       });
 
       const data = await response.json();
@@ -87,6 +88,19 @@ const Registro = () => {
     <div className="card">
       <h4 className="title">REGISTRARSE</h4>
       <form>
+      <label className="field" htmlFor="username">
+          <span className="input-icon">👤</span>
+          <input
+            autoComplete="off"
+            id="username"
+            placeholder="Username"
+            className={`input-field ${errors.username ? 'input-error' : ''}`}
+            name="username"
+            type="text"
+            value={formData.username}
+            onChange={handleChange}
+          />
+        </label>
         <label className="field" htmlFor="email">
           <span className="input-icon">@</span>
           <input
