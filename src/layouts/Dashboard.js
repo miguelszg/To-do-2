@@ -84,20 +84,26 @@ const [groupTasks, setGroupTasks] = useState([]);
   
     fetchUserGroups();
   }, []);
+
+  
   const fetchGroupTasks = async (groupId) => {
     const username = localStorage.getItem('username');
     if (!groupId || !username) return;
   
     try {
-      const response = await axios.get(`http://localhost:5000/tasks-by-group/${groupId}/${username}`);
+      const response = await axios.get(
+        `http://localhost:5000/tasks-by-group/${groupId}/${username}`
+      );
+  
       if (response.data.success) {
         setGroupTasks(response.data.tasks.map(task => ({
           ...task,
           name_task: task.name_task,
           dead_line: task.dead_line,
           status: task.status,
+          isAssigned: task.isAssigned,
         })));
-        console.log("Tareas del grupo:", response.data.tasks);
+        console.log("Tareas del grupo con asignación:", response.data.tasks);
       }
     } catch (error) {
       console.error('Error al obtener tareas del grupo:', error);
@@ -158,10 +164,10 @@ const [groupTasks, setGroupTasks] = useState([]);
 
   const toggleParticipant = (username) => {
     if (selectedParticipants.includes(username)) {
-      // Si ya está seleccionado, lo eliminamos
+      
       setSelectedParticipants(selectedParticipants.filter((user) => user !== username));
     } else {
-      // Si no está seleccionado, lo agregamos
+      
       setSelectedParticipants([...selectedParticipants, username]);
     }
   };
@@ -218,8 +224,8 @@ const [groupTasks, setGroupTasks] = useState([]);
           {
             ...task,
             userId,
-            groupId: selectedGroup ? selectedGroup._id : null, // ID del grupo
-            assignedParticipants, // Usernames de los integrantes asignados
+            groupId: selectedGroup ? selectedGroup._id : null, 
+            assignedParticipants, 
           },
           {
             headers: {
@@ -253,11 +259,11 @@ const [groupTasks, setGroupTasks] = useState([]);
   const handleDeleteTask = async (taskId) => {
     try {
       const response = await axios.delete(
-        `http://localhost:5000/delete-task/${taskId}` // Elimina los encabezados de autorización
+        `http://localhost:5000/delete-task/${taskId}` 
       );
   
       if (response.data.success) {
-        // Actualiza las tareas eliminando la tarea con el taskId
+        
         setTasks((prevTasks) => prevTasks.filter(task => task._id !== taskId));
         setGroupTasks((prevGroupTasks) => prevGroupTasks.filter(task => task._id !== taskId));
       } else {
@@ -271,48 +277,57 @@ const [groupTasks, setGroupTasks] = useState([]);
   
 
   const handleStatusChange = async (taskId, newStatus) => {
-    const statusMap = {
-      'In Progress': '1',
-      'Done': '2',
-      'Paused': '3',
-      'Revision': '4',
-    };
-  
-    const mappedStatus = statusMap[newStatus] || '1';
-  
-    try {
-      // Actualiza el estado de la tarea en el backend
-      const response = await axios.post(
-        `http://localhost:5000/update-task/${taskId}/${mappedStatus}`
-      );
-  
-      if (response.data.success) {
-        console.log('Tarea actualizada exitosamente:', response.data.task);
-  
-        // Vuelve a cargar las tareas desde el backend
-        if (selectedGroupId) {
-          // Si hay un grupo seleccionado, recarga las tareas del grupo
-          await fetchGroupTasks(selectedGroupId);
-        } else {
-          // Si no hay un grupo seleccionado, recarga las tareas generales
-          const userId = localStorage.getItem('userId');
-          const tasksResponse = await axios.get(`http://localhost:5000/tasks/${userId}`);
-          if (tasksResponse.data.success) {
-            setTasks(tasksResponse.data.tasks.map(task => ({
-              ...task,
-              name: task.name_task,
-              time: task.dead_line,
-              status: statusMap[task.status] || 'Unknown',
-            })));
-          }
-        }
-      } else {
-        console.error('Error al actualizar la tarea');
-      }
-    } catch (error) {
-      console.error('Error al actualizar tarea:', error);
-    }
+  const statusMap = {
+    'In Progress': '1',
+    'Done': '2',
+    'Paused': '3',
+    'Revision': '4',
   };
+
+  const mappedStatus = statusMap[newStatus] || '1';
+
+  try {
+    const username = localStorage.getItem('username'); 
+
+    console.log(username)
+
+    
+    const task = tasks.find(task => task._id === taskId) || groupTasks.find(task => task._id === taskId);
+    if (!task || !task.assignedTo.includes(username)) {
+      console.error('No tienes permiso para modificar esta tarea');
+      return;
+    }
+
+    
+    const response = await axios.post(
+      `http://localhost:5000/update-task/${taskId}/${mappedStatus}`
+    );
+
+    if (response.data.success) {
+      console.log('Tarea actualizada exitosamente:', response.data.task);
+
+      
+      if (selectedGroupId) {
+        await fetchGroupTasks(selectedGroupId);
+      } else {
+        const userId = localStorage.getItem('userId');
+        const tasksResponse = await axios.get(`http://localhost:5000/tasks/${userId}`);
+        if (tasksResponse.data.success) {
+          setTasks(tasksResponse.data.tasks.map(task => ({
+            ...task,
+            name: task.name_task,
+            time: task.dead_line,
+            status: statusMap[task.status] || 'Unknown',
+          })));
+        }
+      }
+    } else {
+      console.error('Error al actualizar la tarea');
+    }
+  } catch (error) {
+    console.error('Error al actualizar tarea:', error);
+  }
+};
 
 
   const categorizedTasks = {
@@ -323,10 +338,10 @@ const [groupTasks, setGroupTasks] = useState([]);
   };
 
   const categorizedGroupTasks = {
-    'In Progress': groupTasks.filter(task => task.status === '1'), // Compara con '1'
-    'Done': groupTasks.filter(task => task.status === '2'),       // Compara con '2'
-    'Paused': groupTasks.filter(task => task.status === '3'),     // Compara con '3'
-    'Revision': groupTasks.filter(task => task.status === '4'),   // Compara con '4'
+    'In Progress': groupTasks.filter(task => task.status === '1'), 
+    'Done': groupTasks.filter(task => task.status === '2'),      
+    'Paused': groupTasks.filter(task => task.status === '3'),   
+    'Revision': groupTasks.filter(task => task.status === '4'),   
   };
 
   return (
@@ -338,8 +353,8 @@ const [groupTasks, setGroupTasks] = useState([]);
       key={group._id}
       className={`group-button ${selectedGroupId === group._id ? 'active' : ''}`}
       onClick={() => {
-        setSelectedGroupId(group._id); // Actualiza el grupo seleccionado
-        fetchGroupTasks(group._id); // Obtiene las tareas del grupo
+        setSelectedGroupId(group._id); 
+        fetchGroupTasks(group._id); 
       }}
     >
       {group.name}
@@ -436,7 +451,7 @@ const [groupTasks, setGroupTasks] = useState([]);
           <input className="input-field" type="text" id="category" placeholder="Enter category" name="category" value={task.category} onChange={handleChange} required />
         </div>
 
-        {/* Combo para seleccionar grupo */}
+       
         {userRole === '1' && (
           <>
             <div className="field">
@@ -462,7 +477,7 @@ const [groupTasks, setGroupTasks] = useState([]);
               </select>
             </div>
 
-            {/* Lista de integrantes del grupo seleccionado */}
+            
             {selectedGroup && (
               <div className="field">
                 <label htmlFor="assignedParticipants">Assign to</label>
@@ -501,7 +516,7 @@ const [groupTasks, setGroupTasks] = useState([]);
       <h2>{status}</h2>
       <div className="task-list">
         {selectedGroupId ? (
-          // Mostrar tareas del grupo seleccionado
+         
           categorizedGroupTasks[status].map((task, index) => (
             <div key={index} className="task-card" style={{ borderColor: status === 'In Progress' ? '#2563eb' : status === 'Done' ? '#16a34a' : status === 'Paused' ? '#f59e0b' : '#eab308' }}>
               <h3>{task.name_task}</h3>
@@ -517,20 +532,53 @@ const [groupTasks, setGroupTasks] = useState([]);
                 className="status-select"
                 value={status}
                 onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                disabled={!task.isAssigned} 
               >
                 <option value="In Progress">En Progreso</option>
                 <option value="Done">Completado</option>
                 <option value="Paused">Pausa</option>
                 <option value="Revision">Revisión</option>
               </select>
-              <button className="delete-button" onClick={() => handleDeleteTask(task._id)}>
+              <button
+                className="delete-button"
+                onClick={() => handleDeleteTask(task._id)}
+                disabled={!task.isAssigned} 
+              >
                 <FaTrashAlt />
               </button>
             </div>
           ))
         ) : (
+         
           categorizedTasks[status].map((task, index) => (
             <div key={index} className="task-card" style={{ borderColor: task.status === 'In Progress' ? '#2563eb' : task.status === 'Done' ? '#16a34a' : task.status === 'Paused' ? '#f59e0b' : '#eab308' }}>
+              <h3>{task.name}</h3>
+              <div className="task-info">
+                <span>{task.description}</span>
+                <span>{task.category}</span>
+                <span>{task.time}</span>
+              </div>
+              <div className={`status ${task.status.toLowerCase().replace(' ', '-')}`}>
+                {task.status}
+              </div>
+              <select
+                className="status-select"
+                value={task.status}
+                onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                disabled={!task.isAssigned} 
+              >
+                <option value="In Progress">En Progreso</option>
+                <option value="Done">Completado</option>
+                <option value="Paused">Pausa</option>
+                <option value="Revision">Revisión</option>
+              </select>
+              <button
+                className="delete-button"
+                onClick={() => handleDeleteTask(task._id)}
+                disabled={!task.isAssigned} 
+              >
+                <FaTrashAlt />
+              </button>
             </div>
           ))
         )}
